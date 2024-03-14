@@ -21,7 +21,7 @@ training_args:
   evaluation_strategy: !!str "steps"
   lr_scheduler_type: !!str "cosine"
   optim: !!str "adamw_torch"
-  log_path: !!str "path/to/your/log"
+  log_path: !!str "./logmlm.txt"
   logging_steps: !!int 10
   eval_steps: !!int 50
   weight_decay: !!float 0.01
