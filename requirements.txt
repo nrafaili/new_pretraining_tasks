@@ -1,0 +1,7 @@
+ipywidgets
+torch
+transformers
+datasets
+accelerate
+wandb
+huggingface_hub
