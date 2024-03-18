@@ -29,7 +29,7 @@ class DataCollatorForMixedMLM(DataCollatorMixin):
         labels = inputs.clone()
         #probability_matrix = torch.full(labels.shape, random.uniform(self.min_prob, self.max_prob))
         probability_matrix = torch.normal(mean=0.3, std=0.12, size=labels.shape)
-        probability_matrix = torch.clamp(probability_matrix, min=0.0, max=1.0)
+        probability_matrix = torch.clamp(probability_matrix, min=0.0, max=1.0)     #REFACTOR (magic numbers)
 
         if special_tokens_mask is None:
             special_tokens_mask = [
@@ -41,6 +41,7 @@ class DataCollatorForMixedMLM(DataCollatorMixin):
         probability_matrix.masked_fill_(special_tokens_mask, value=0.0)
         masked_indices = torch.bernoulli(probability_matrix).bool()
         labels[~masked_indices] = -100  # We only compute loss on masked tokens
+        '''
         # 85% of the time, we replace masked input tokens with tokenizer.mask_token ([MASK])
         indices_replaced = torch.bernoulli(torch.full(labels.shape, 0.90)).bool() & masked_indices
         inputs[indices_replaced] = self.tokenizer.convert_tokens_to_ids(self.tokenizer.mask_token)
@@ -49,6 +50,7 @@ class DataCollatorForMixedMLM(DataCollatorMixin):
         random_words = torch.randint(len(self.tokenizer), labels.shape, dtype=torch.long)
         inputs[indices_random] = random_words[indices_random]
         # The rest of the time (5% of the time) we keep the masked input tokens unchanged
+        '''
         return inputs, labels
     
 
@@ -56,6 +58,24 @@ class DataCollatorForMLM(DataCollatorForLanguageModeling):
 
     def __init__(self, tokenizer, mlm_probability=0.15, **kwargs):
         super().__init__(tokenizer=tokenizer, mlm=True, mlm_probability=mlm_probability, **kwargs)
+
+    def torch_mask_tokens(self, inputs: Any, special_tokens_mask: Optional[Any] = None) -> Tuple[Any, Any]:
+        labels = inputs.clone()
+        probability_matrix = torch.full(labels.shape, self.mlm_probability)
+
+        if special_tokens_mask is None:
+            special_tokens_mask = [
+                self.tokenizer.get_special_tokens_mask(val, already_has_special_tokens=True) for val in labels.tolist()
+            ]
+            special_tokens_mask = torch.tensor(special_tokens_mask, dtype=torch.bool)
+        else:
+            special_tokens_mask = special_tokens_mask.bool()
+
+        probability_matrix.masked_fill_(special_tokens_mask, value=0.0)
+        masked_indices = torch.bernoulli(probability_matrix).bool()
+        labels[~masked_indices] = -100  # We only compute loss on masked tokens
+        
+        return inputs, labels
 
 
 def get_data_collator(mlm_probability, tokenizer):

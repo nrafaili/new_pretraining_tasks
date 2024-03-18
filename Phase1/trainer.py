@@ -27,42 +27,22 @@ class SortedTrainer(Trainer):
         else:
             return RandomSampler(self.train_dataset)
 
-def setup_and_train(model, tokenizer, data_collator, train_dataset, compute_metrics, args):
-    # Define training arguments
-    training_args = TrainingArguments(
-        report_to='wandb' if args.wandb else None,
-        output_dir=args.save_path,
-        per_device_train_batch_size=args.batch_size,
-        per_device_eval_batch_size=args.batch_size,
-        gradient_accumulation_steps=args.grad_accum,
-        logging_steps=args.logging_steps,
-        evaluation_strategy='steps',
-        eval_steps=args.eval_steps,
-        num_train_epochs=args.epochs,
-        weight_decay=args.weight_decay,
-        warmup_steps=args.warmup_steps,
-        lr_scheduler_type='cosine',
-        learning_rate=args.lr,
-        optim='adamw_torch',
-        seed=args.seed,
-        data_seed=args.seed,
-        save_steps=args.eval_steps,
-        save_total_limit=3,
-        load_best_model_at_end=True,
-        greater_is_better=False,
-        fp16=args.fp16,
-        group_by_length=True,
-    )
-
-
+def HF_trainer(model,
+               train_dataset,
+               tokenizer,
+               compute_metrics=None,
+               data_collator=None,
+               patience=3,
+               *args, **kwargs):
+    training_args = TrainingArguments(*args, **kwargs)
     trainer = SortedTrainer(
         model=model,
         tokenizer=tokenizer,
         args=training_args,
-        data_collator=data_collator,
         train_dataset=train_dataset,
+        eval_dataset=None,
         compute_metrics=compute_metrics,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=args.patience)]  # usually 3 - 5
+        data_collator=data_collator,
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=patience)]
     )
-
-    trainer.train()
+    return trainer
