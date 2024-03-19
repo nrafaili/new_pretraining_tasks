@@ -32,6 +32,6 @@ training_args:
   load_best_model_at_end: !!bool true
   greater_is_better: !!bool false
   seed: !!int 338
-
+  fp16: !!bool true
 output_config:
   output_dir: !!str "output"
